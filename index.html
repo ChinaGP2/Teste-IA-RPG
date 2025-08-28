@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Aventuras RPG com IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=EB+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        body { font-family: 'EB Garamond', serif; overflow-x: hidden; }
+        .title-font { font-family: 'Cinzel Decorative', serif; }
+        .story-text { white-space: pre-wrap; overflow-wrap: break-word; }
+        .action-button { background: linear-gradient(145deg, #b91c1c, #7f1d1d); border: 1px solid #fef08a; color: #fefce8; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4); transition: all 0.2s ease-in-out; }
+        .action-button:hover:not(:disabled) { background: linear-gradient(145deg, #c82a2a, #902a2a); transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0, 0, 0, 0.5); }
+        .action-button:disabled { background: #57534e; cursor: not-allowed; opacity: 0.6; }
+        .secondary-button { background: linear-gradient(145deg, #075985, #0c4a6e); border: 1px solid #7dd3fc; color: #e0f2fe; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4); transition: all 0.2s ease-in-out; }
+        .secondary-button:hover:not(:disabled) { background: linear-gradient(145deg, #0369a1, #083344); }
+        .secondary-button:disabled { background: #4b5563; cursor: not-allowed; opacity: 0.6; }
+        .suggestion-chip { background-color: rgba(12, 74, 110, 0.5); border: 1px solid #7dd3fc; transition: all 0.2s ease-in-out; cursor: pointer; }
+        .suggestion-chip:hover { background-color: rgba(3, 105, 161, 0.7); border-color: #e0f2fe; }
+        #background { background-image: url('https://images.unsplash.com/photo-1532009877282-3340270e1c41?q=80&w=1974&auto-format&fit=crop'); background-size: cover; background-position: center; filter: blur(5px) brightness(0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .container-bg { background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(253, 224, 71, 0.2); }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.2); border-radius: 50%; border-top-color: #fef08a; width: 40px; height: 40px; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .divider { height: 1px; background: linear-gradient(to right, transparent, rgba(253, 224, 71, 0.5), transparent); margin: 1.5rem 0; }
+        .narrate-btn { background-color: rgba(253, 224, 71, 0.1); border: 1px solid rgba(253, 224, 71, 0.3); transition: all 0.2s ease-in-out; }
+        .narrate-btn:hover { background-color: rgba(253, 224, 71, 0.2); }
+        .narrate-btn.speaking svg { color: #fef08a; }
+        .inventory-item { background-color: rgba(0,0,0,0.3); border: 1px solid #a3a3a3; }
+        .health-bar-background { background-color: #4b5563; border-radius: 0.25rem; overflow: hidden; }
+        .health-bar-foreground { background-color: #dc2626; height: 100%; transition: width 0.5s ease-in-out; }
+        .character-card { transition: all 0.3s ease-in-out; background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .character-card.downed { opacity: 0.5; filter: grayscale(80%); }
+        .character-card.active-turn { box-shadow: 0 0 15px #fef08a; transform: scale(1.02); }
+        .map-container { position: relative; width: 100%; padding-top: 66.66%; background-image: url('https://images.unsplash.com/photo-1563863528865-8a6b72a26012?q=80&w=2070&auto-format&fit=crop'); background-size: cover; border-radius: 0.25rem; overflow: hidden; border: 1px solid rgba(253, 224, 71, 0.2); }
+        .fog-of-war { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: black; mask-image: radial-gradient(circle 80px at 50% 50%, transparent 50%, black 100%); -webkit-mask-image: radial-gradient(circle 80px at 50% 50%, transparent 50%, black 100%); mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transition: mask-position 1s ease-in-out; -webkit-mask-position: 50% 50%; mask-position: 50% 50%; }
+        .map-marker { position: absolute; transform: translate(-50%, -50%); font-size: 24px; cursor: pointer; text-shadow: 0 0 5px black; }
+        .player-marker { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.16.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.2.0/",
+    "tone": "https://aistudiocdn.com/tone@^15.1.22"
+  }
+}
+</script>
+</head>
+<body class="bg-gray-900 text-gray-200">
+    <div id="background"></div>
+    <div id="root" class="flex items-center justify-center min-h-screen p-4"></div>
+    <audio id="bg-music" loop>
+        <source src="https://www.chosic.com/wp-content/uploads/2021/05/The-Vikings.mp3" type="audio/mpeg">
+    </audio>
+</body>
+</html>

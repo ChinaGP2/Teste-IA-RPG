@@ -1,0 +1,5 @@
+{
+  "name": "Crónicas da IA - RPG Adventure Generator",
+  "description": "An AI-powered, multiplayer RPG adventure generator where players create heroes, embark on journeys, and have their stories narrated by a generative AI game master. The application features real-time collaboration, dynamic story progression, and AI-generated imagery to visualize the scenes.",
+  "requestFramePermissions": []
+}
